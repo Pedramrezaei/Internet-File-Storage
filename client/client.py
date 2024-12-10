@@ -2,7 +2,7 @@ import socket
 import threading
 from utils import validate_username, validate_filename, validate_message
 
-HOST = "localhost"
+HOST = "145.94.129.189"
 PORT = 3000
 
 def receive_messages(client_socket):
