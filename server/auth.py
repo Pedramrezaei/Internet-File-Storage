@@ -41,10 +41,13 @@ def register_user(username, password):
     return True, "Registration successful."
 
 def authenticate_user(username, password):
-    """Authenticate an existing user."""
     credentials = load_credentials()
     if username in credentials:
         if bcrypt.checkpw(password.encode(), credentials[username].encode()):
-            return True, "Login successful."
+            print(f"Login successful for user: {username}")
+            return True, "LOGIN_SUCCESS"
+        print(f"Incorrect password for user: {username}")
         return False, "Incorrect password."
+    print(f"User not found: {username}")
     return False, "User not found."
+
