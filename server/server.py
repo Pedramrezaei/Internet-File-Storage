@@ -14,17 +14,20 @@ def handle_client(client_socket):
     try:
         while True:
             request = client_socket.recv(1024).decode()
-            if request.startswith("CHAT"):
-                username = request.split(":")[1]
-                if client_socket not in connected_clients:
-                    connected_clients.append(client_socket)
-                handle_chat(client_socket, username)
+            if request.startswith("LOGIN"):
+                username, password = client_socket.recv(1024).decode().split(":")
+                success, message = authenticate_user(username, password)
+                print(f"Login attempt for {username}: {message}")
+                if success:
+                    client_socket.send(message.encode())  # Send LOGIN_SUCCESS
+                else:
+                    client_socket.send(message.encode())  # Send error message
+            # Handle other requests...
     except ConnectionResetError:
         print("Client disconnected.")
     finally:
-        if client_socket in connected_clients:
-            connected_clients.remove(client_socket)
         client_socket.close()
+
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

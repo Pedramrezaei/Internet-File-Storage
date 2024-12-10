@@ -127,7 +127,7 @@ def main():
         print("3. Exit")
         option = input("Select an option: ")
 
-        if option == "1":
+        if option == "1":  # Registration
             username = input("Enter a username: ")
             password = input("Enter a password: ")
             if len(username) < 5:
@@ -141,28 +141,27 @@ def main():
             client_socket.send(f"{username}:{password}".encode())
             response = client_socket.recv(1024).decode()
             print(response)
-            if response == "Registration successful.":
-                print("Please log in to continue.")
 
-        elif option == "2":
+        elif option == "2":  # Login
             username = input("Enter your username: ")
             password = input("Enter your password: ")
             client_socket.send("LOGIN".encode())
             client_socket.send(f"{username}:{password}".encode())
             response = client_socket.recv(1024).decode()
+            print(f"Server response: {response}")  # Debugging message
             if response == "LOGIN_SUCCESS":
-                print("Login successful.")
-                client_menu(client_socket)  # Proceed to main menu
+                print("Login successful. Redirecting to the menu...")
+                client_menu(client_socket)  # Proceed to menu
             else:
-                print(response)
+                print(response)  # Print error message (e.g., "Incorrect password.")
 
-        elif option == "3":
-            print("Exiting the program...")
+        elif option == "3":  # Exit
             client_socket.close()
             break
 
         else:
             print("Invalid option. Try again.")
+
 
 
 if __name__ == "__main__":
