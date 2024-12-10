@@ -1,5 +1,6 @@
 import socket
 import threading
+
 from utils import validate_username, validate_filename, validate_message
 
 HOST = "145.94.129.189"
@@ -11,27 +12,27 @@ def receive_messages(client_socket):
         try:
             message = client_socket.recv(1024).decode()
             if message:
-                print("\n" + message)
+                print("\n" + message)  # Print the message in real-time
             else:
                 break
         except ConnectionResetError:
             print("Disconnected from server.")
             break
 
+
 def handle_chat(client_socket):
     """Chatroom functionality."""
     print("Welcome to the chatroom! Type your message below.")
-    print("Use '@username' to mention someone. Type '!exit' to leave the chatroom.")
+    print("Type '!exit' to leave the chatroom.")
+
+    threading.Thread(target=receive_messages, args=(client_socket,), daemon=True).start()
 
     while True:
         message = input("> ")
         if message == "!exit":
             client_socket.send("CHAT_EXIT".encode())
             break
-        if validate_message(message):
-            client_socket.send(f"CHAT:{message}".encode())
-        else:
-            print("Invalid message. Ensure it is between 1 and 500 characters.")
+        client_socket.send(message.encode())
 
 def list_files(client_socket):
     """List available files on the server."""
