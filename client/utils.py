@@ -1,22 +1,41 @@
-import os
-
 def validate_username(username):
-    """Validates a username to ensure it is alphanumeric and 5-20 characters long."""
-    return username.isalnum() and 5 <= len(username) <= 20
+    """
+    Validate the username:
+    - Must be between 5 and 20 characters.
+    - Can contain alphanumeric characters and underscores.
+    """
+    if len(username) < 5 or len(username) > 20:
+        return False
+    if not username.replace("_", "").isalnum():  # Allow underscores
+        return False
+    return True
+
 
 def validate_password(password):
-    """Validates a password to ensure it is at least 8 characters long."""
+    """
+    Validate the password:
+    - Must be at least 8 characters long.
+    """
     return len(password) >= 8
 
-def validate_message(message):
-    """Validates a message to ensure it is between 1 and 500 characters."""
-    return 1 <= len(message) <= 500
 
 def validate_filename(filename):
-    """Validates a filename to ensure it is alphanumeric or contains valid special characters."""
-    allowed_chars = "._-"
-    return (
-        1 <= len(filename) <= 255
-        and all(c.isalnum() or c in allowed_chars for c in filename)
-        and not filename.startswith(".")
-    )
+    """
+    Validate the filename:
+    - Must only contain alphanumeric characters, dots, underscores, and hyphens.
+    - Must not contain spaces.
+    """
+    allowed_characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
+    if any(char not in allowed_characters for char in filename):
+        return False
+    if " " in filename:
+        return False
+    return True
+
+
+def validate_message(message):
+    """
+    Validate the chat message:
+    - Length must be between 1 and 500 characters.
+    """
+    return 1 <= len(message) <= 500
