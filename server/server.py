@@ -4,8 +4,8 @@ from chat import handle_chat, connected_clients
 from auth import authenticate_user, register_user
 from utils import validate_username, validate_password
 
-HOST = "145.94.129.189"  # Updated to your server's external IP address
-PORT = 3000
+HOST = "145.94.177.193"
+PORT = 1500
 
 def handle_client(client_socket):
     """Handle client communication."""
