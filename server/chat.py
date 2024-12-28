@@ -15,6 +15,7 @@ def broadcast_message(message, sender_socket=None):
                 connected_clients.remove(client_socket)
     append_to_chatlog(message)
 
+
 def append_to_chatlog(message):
     """Append a message to the chatlog.txt file."""
     chatlog_path = os.path.join("data", "chatlog.txt")

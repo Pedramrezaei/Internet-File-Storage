@@ -2,10 +2,12 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QVBoxLayo
 import socket
 import threading
 
+
 class LoginScreen(QWidget):
-    def __init__(self, switch_to_main):
+    def __init__(self, switch_to_main, client_socket):
         super().__init__()
         self.switch_to_main = switch_to_main
+        self.client_socket = client_socket
 
         # Layout
         layout = QFormLayout()
@@ -28,15 +30,23 @@ class LoginScreen(QWidget):
     def login(self):
         username = self.username_input.text()
         password = self.password_input.text()
-        # Send login details to server (you'll integrate this with socket)
-        # Example logic:
-        if username and password:  # Replace with server validation
-            self.switch_to_main()
+        if username and password:
+            # Send login details to the server
+            self.client_socket.send(f"LOGIN:{username}:{password}".encode())
+            response = self.client_socket.recv(1024).decode()
+            if response == "LOGIN_SUCCESS":
+                self.switch_to_main(username)
+            else:
+                self.username_input.setText("")
+                self.password_input.setText("")
+                self.username_input.setPlaceholderText("Invalid login. Try again.")
+
 
 class ChatScreen(QWidget):
-    def __init__(self, client_socket):
+    def __init__(self, client_socket, username):
         super().__init__()
         self.client_socket = client_socket
+        self.username = username
 
         # Layout
         layout = QVBoxLayout()
@@ -55,13 +65,16 @@ class ChatScreen(QWidget):
 
         self.setLayout(layout)
 
+        # Notify server of the new connection
+        self.client_socket.send(f"JOIN:{self.username}".encode())
+
         # Start thread to listen for incoming messages
         threading.Thread(target=self.receive_messages, daemon=True).start()
 
     def send_message(self):
         message = self.message_input.text()
         if message.strip():
-            self.client_socket.send(message.encode())
+            self.client_socket.send(f"MESSAGE:{self.username}:{message}".encode())
             self.message_input.clear()
 
     def receive_messages(self):
@@ -73,8 +86,9 @@ class ChatScreen(QWidget):
                 else:
                     break
             except Exception as e:
-                print(f"Error receiving message: {e}")
+                self.chat_display.append(f"Error: {e}")
                 break
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -90,16 +104,14 @@ class MainWindow(QMainWindow):
         self.client_socket.connect(("145.94.177.193", 1500))  # Adjust server IP/port
 
         # Screens
-        self.login_screen = LoginScreen(self.show_main_menu)
-        self.chat_screen = ChatScreen(self.client_socket)
-
+        self.login_screen = LoginScreen(self.show_main_menu, self.client_socket)
         self.stack.addWidget(self.login_screen)
+
+    def show_main_menu(self, username):
+        self.chat_screen = ChatScreen(self.client_socket, username)
         self.stack.addWidget(self.chat_screen)
-
-        self.stack.setCurrentWidget(self.login_screen)
-
-    def show_main_menu(self):
         self.stack.setCurrentWidget(self.chat_screen)
+
 
 app = QApplication([])
 window = MainWindow()

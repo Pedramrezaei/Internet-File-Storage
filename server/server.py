@@ -5,7 +5,7 @@ from auth import authenticate_user, register_user
 from utils import validate_username, validate_password
 
 HOST = "145.94.177.193"
-PORT = 1500
+PORT = 1700
 
 def handle_client(client_socket):
     """Handle client communication."""
