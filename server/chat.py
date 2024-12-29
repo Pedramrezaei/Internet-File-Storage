@@ -3,9 +3,9 @@ import os
 def broadcast_message(udp_socket, client_ports, message):
     """Broadcast a message to all registered UDP client ports."""
     try:
-        print(f"Broadcasting to ports: {client_ports}")  # Debugging
-        for client_address in client_ports:
-            udp_socket.sendto(message.encode(), client_address)
+        print(f"Broadcasting to clients: {client_ports}")  # Debugging
+        for ip, port in client_ports.items():  # Iterate over IP and port
+            udp_socket.sendto(message.encode(), (ip, port))
         append_to_chatlog(message)
         print(f"Broadcasted message: {message}")
     except Exception as e:

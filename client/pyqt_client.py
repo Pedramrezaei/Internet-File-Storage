@@ -163,6 +163,15 @@ class MainWindow(QMainWindow):
     def show_chat(self):
         self.stack.setCurrentWidget(self.chat_screen)
 
+    def closeEvent(self, event):
+        try:
+            self.client_socket.send("CHAT_EXIT".encode())
+            self.client_socket.close()
+            self.udp_socket.close()
+        except Exception as e:
+            print(f"Error during client disconnect: {e}")
+        super().closeEvent(event)
+
 
 if __name__ == "__main__":
     app = QApplication([])
