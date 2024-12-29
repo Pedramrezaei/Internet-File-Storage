@@ -1,14 +1,24 @@
 import socket
 import threading
-from chat import handle_chat, connected_clients
+from chat import broadcast_message
 from auth import authenticate_user, register_user
 from utils import validate_username, validate_password
 
-HOST = "145.94.177.193"
-PORT = 1700
+TCP_HOST = "145.94.130.217"
+TCP_PORT = 1500
+UDP_PORT = 1701
 
-def handle_client(client_socket):
-    """Handle client communication."""
+udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+udp_socket.bind((TCP_HOST, UDP_PORT))
+
+client_ports = set()  # Track connected client ports (IP, Port)
+processed_messages = set()
+
+
+def handle_client(client_socket, client_address):
+    global client_ports
+    print(f"New connection from {client_address}")
     try:
         while True:
             request = client_socket.recv(1024).decode()
@@ -20,35 +30,52 @@ def handle_client(client_socket):
                 else:
                     success, message = register_user(username, password)
                     client_socket.send(message.encode())
-
             elif request == "LOGIN":
                 credentials = client_socket.recv(1024).decode().split(":")
                 username, password = credentials[0], credentials[1]
                 success, message = authenticate_user(username, password)
                 client_socket.send(message.encode())
                 if success:
-                    if client_socket not in connected_clients:
-                        connected_clients.append(client_socket)
-                    handle_chat(client_socket, username)
-
+                    print(f"{username} logged in successfully.")
     except Exception as e:
-        print(f"Error in handle_client: {e}")
+        print(f"Error handling client {client_address}: {e}")
     finally:
-        if client_socket in connected_clients:
-            connected_clients.remove(client_socket)
         client_socket.close()
+        print(f"Connection with {client_address} closed.")
+
+
+def handle_udp_messages():
+    global client_ports
+    print("Listening for UDP messages...")
+    while True:
+        try:
+            message, client_address = udp_socket.recvfrom(1024)
+            message = message.decode()
+            print(f"Received from {client_address}: {message}")
+
+            # Register client address and port
+            client_ports.add(client_address)
+            print(f"Updated client ports: {client_ports}")  # Debugging
+
+            if message not in processed_messages:
+                processed_messages.add(message)
+                broadcast_message(udp_socket, client_ports, message)  # Pass client_ports here
+        except Exception as e:
+            print(f"Error in UDP message handling: {e}")
+
 
 def start_server():
-    """Start the server."""
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((HOST, PORT))
-    server_socket.listen(5)
-    print(f"Server started on {HOST}:{PORT}")
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_socket.bind((TCP_HOST, TCP_PORT))
+    tcp_socket.listen(5)
+    print(f"Server started on {TCP_HOST}:{TCP_PORT} (TCP) and {UDP_PORT} (UDP)")
+
+    threading.Thread(target=handle_udp_messages, daemon=True).start()
 
     while True:
-        client_socket, client_address = server_socket.accept()
-        print(f"Client connected: {client_address}")
-        threading.Thread(target=handle_client, args=(client_socket,)).start()
+        client_socket, client_address = tcp_socket.accept()
+        threading.Thread(target=handle_client, args=(client_socket, client_address)).start()
+
 
 if __name__ == "__main__":
     start_server()

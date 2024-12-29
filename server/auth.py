@@ -17,6 +17,7 @@ def load_credentials():
 
 def save_credentials(credentials):
     """Save credentials to the file."""
+    os.makedirs(os.path.dirname(credentials_path), exist_ok=True)
     with open(credentials_path, "w") as file:
         for username, hashed_password in credentials.items():
             file.write(f"{username}:{hashed_password}\n")

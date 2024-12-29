@@ -3,7 +3,7 @@ import threading
 from utils import validate_username, validate_password, validate_filename, validate_message
 
 HOST = "145.94.177.193" # Same IP as server ip (Pedram laptop)
-PORT = 1500
+PORT = 1701
 
 
 def receive_messages(client_socket):
