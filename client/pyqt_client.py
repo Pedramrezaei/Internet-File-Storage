@@ -94,6 +94,10 @@ class ChatScreen(QWidget):
 
         self.message_input = QLineEdit()
         self.message_input.setPlaceholderText("Type your message here...")
+
+        # Connect Enter key (returnPressed signal) to send_message
+        self.message_input.returnPressed.connect(self.send_message)
+
         self.send_button = QPushButton("Send")
         self.send_button.clicked.connect(self.send_message)
 
@@ -122,6 +126,7 @@ class ChatScreen(QWidget):
                 print(f"Error sending username to server: {e}")
 
     def send_message(self):
+        """Send a message to the chat."""
         message = self.message_input.text()
         if not message.strip():
             return
@@ -133,6 +138,7 @@ class ChatScreen(QWidget):
             print(f"Error sending message: {e}")
 
     def receive_message(self):
+        """Receive and display a message from the server."""
         try:
             message, _ = self.udp_socket.recvfrom(1024)
             self.chat_display.append(message.decode())
@@ -142,11 +148,13 @@ class ChatScreen(QWidget):
             print(f"Error receiving message: {e}")
 
     def leave_chat(self):
+        """Handle exiting the chat and returning to the main menu."""
         try:
             self.udp_socket.sendto("CHAT_EXIT".encode(), (HOST, UDP_PORT))
         except Exception as e:
             print(f"Error during chat exit: {e}")
         self.switch_to_main_menu.emit()
+
 
 
 class MainWindow(QMainWindow):
