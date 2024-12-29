@@ -45,7 +45,6 @@ class LoginScreen(QWidget):
             self.client_socket.sendall(f"{username}:{password}".encode())
             response = self.client_socket.recv(1024).decode()
             if response == "LOGIN_SUCCESS":
-                self.client_socket.sendall(f"SET_USERNAME:{username}".encode())
                 self.switch_to_main.emit()
             else:
                 self.status_label.setText(response)
@@ -111,6 +110,17 @@ class ChatScreen(QWidget):
         layout.addWidget(self.back_button)
         self.setLayout(layout)
 
+        self.send_username_to_server()
+
+    def send_username_to_server(self):
+        """Send the username to the server to associate it with the client."""
+        if self.username:
+            try:
+                self.udp_socket.sendto(f"SET_USERNAME:{self.username}".encode(), (HOST, UDP_PORT))
+                print(f"Username '{self.username}' sent to the server.")
+            except Exception as e:
+                print(f"Error sending username to server: {e}")
+
     def send_message(self):
         message = self.message_input.text()
         if not message.strip():
@@ -152,14 +162,12 @@ class MainWindow(QMainWindow):
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.login_screen = LoginScreen(self.client_socket)
         self.main_menu_screen = MainMenuScreen()
-        self.chat_screen = ChatScreen(self.udp_socket, self.username)
+        self.chat_screen = None  # Initialize chat_screen later
         self.login_screen.switch_to_main.connect(self.show_main_menu)
         self.main_menu_screen.switch_to_chat.connect(self.show_chat)
-        self.chat_screen.switch_to_main_menu.connect(self.show_main_menu)
 
         self.stack.addWidget(self.login_screen)
         self.stack.addWidget(self.main_menu_screen)
-        self.stack.addWidget(self.chat_screen)
         self.stack.setCurrentWidget(self.login_screen)
 
     def show_main_menu(self):
@@ -167,7 +175,13 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.main_menu_screen)
 
     def show_chat(self):
+        if self.chat_screen is None:  # Create the chat screen only once
+            self.chat_screen = ChatScreen(self.udp_socket, self.username)
+            self.chat_screen.switch_to_main_menu.connect(self.show_main_menu)
+            self.stack.addWidget(self.chat_screen)
+
         self.chat_screen.username = self.username
+        self.chat_screen.send_username_to_server()  # Ensure username is sent
         self.stack.setCurrentWidget(self.chat_screen)
 
     def closeEvent(self, event):

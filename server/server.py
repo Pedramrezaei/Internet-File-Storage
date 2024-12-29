@@ -22,7 +22,6 @@ def handle_client(client_socket, client_address):
     global client_ports, usernames
     print(f"New connection from {client_address}")
     ip, port = client_address
-    username = None  # Initialize username as None
     try:
         while True:
             request = client_socket.recv(1024).decode()
@@ -58,7 +57,7 @@ def handle_client(client_socket, client_address):
 
 
 def handle_udp_messages():
-    global client_ports, usernames, processed_messages
+    global client_ports, usernames
     print("Listening for UDP messages...")
     while True:
         try:
@@ -68,6 +67,13 @@ def handle_udp_messages():
 
             # Register or update client port
             client_ports[ip] = port
+
+            # Handle SET_USERNAME command
+            if message.startswith("SET_USERNAME:"):
+                username = message.split(":", 1)[1]
+                usernames[ip] = username
+                print(f"Username set for {ip}: {username}")
+                continue
 
             # Handle client exit
             if message == "CHAT_EXIT":
@@ -79,22 +85,19 @@ def handle_udp_messages():
                 continue
 
             # Append username if it exists
-            if ip in usernames and message.startswith("MESSAGE:"):
-                username = usernames[ip]
-                content = message.split(":", 1)[1]  # Extract message content
-                message = f"{username}: {content}"
-            elif message.startswith("MESSAGE:"):
-                # Handle case where username is not set
-                message = f"Unknown: {message.split(':', 1)[1]}"
-
-            print(f"Broadcasting message: {message}")
+            if message.startswith("MESSAGE:"):
+                if ip in usernames:
+                    username = usernames[ip]
+                    content = message.split(":", 1)[1]  # Extract message content
+                    message = f"{username}: {content}"
+                else:
+                    message = f"Unknown: {message.split(':', 1)[1]}"
 
             # Broadcast the message
             broadcast_message(udp_socket, client_ports, message)
 
         except Exception as e:
             print(f"Error in UDP message handling: {e}")
-
 
 
 def start_server():
