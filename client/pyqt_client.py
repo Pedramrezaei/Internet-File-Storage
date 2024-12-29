@@ -45,6 +45,7 @@ class LoginScreen(QWidget):
             self.client_socket.sendall(f"{username}:{password}".encode())
             response = self.client_socket.recv(1024).decode()
             if response == "LOGIN_SUCCESS":
+                self.client_socket.sendall(f"SET_USERNAME:{username}".encode())
                 self.switch_to_main.emit()
             else:
                 self.status_label.setText(response)
@@ -68,7 +69,6 @@ class LoginScreen(QWidget):
 
 class MainMenuScreen(QWidget):
     switch_to_chat = pyqtSignal()
-    switch_to_file_manager = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -76,70 +76,73 @@ class MainMenuScreen(QWidget):
         chat_button = QPushButton("Join Chatroom")
         chat_button.clicked.connect(self.switch_to_chat)
         layout.addWidget(chat_button)
-        file_manager_button = QPushButton("File Manager")
-        file_manager_button.clicked.connect(self.switch_to_file_manager)
-        layout.addWidget(file_manager_button)
         self.setLayout(layout)
 
 
 class ChatScreen(QWidget):
-    def __init__(self, udp_socket):
+    switch_to_main_menu = pyqtSignal()
+
+    def __init__(self, udp_socket, username):
         super().__init__()
         self.udp_socket = udp_socket
+        self.username = username
         self.udp_socket.setblocking(False)
-        self.udp_socket.bind(("", 0))  # Dynamically bind to an available port
-        print(f"UDP socket bound to {self.udp_socket.getsockname()}")  # Debugging
+        self.udp_socket.bind(("", 0))
 
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
-        self.chat_display.append("This is the start of your chatting experience.")
-        print("Chat display initialized with starting message.")  # Debugging
+        self.chat_display.append("Welcome to the chat!")
 
         self.message_input = QLineEdit()
         self.message_input.setPlaceholderText("Type your message here...")
         self.send_button = QPushButton("Send")
         self.send_button.clicked.connect(self.send_message)
 
+        self.back_button = QPushButton("Back to Menu")
+        self.back_button.clicked.connect(self.leave_chat)
+
         self.udp_notifier = QSocketNotifier(self.udp_socket.fileno(), QSocketNotifier.Type.Read)
         self.udp_notifier.activated.connect(self.receive_message)
-        print(f"UDP notifier initialized: {self.udp_notifier}")  # Debugging
 
         layout = QVBoxLayout()
         layout.addWidget(self.chat_display)
         layout.addWidget(self.message_input)
         layout.addWidget(self.send_button)
+        layout.addWidget(self.back_button)
         self.setLayout(layout)
-        print("ChatScreen layout and widgets set.")  # Debugging
 
     def send_message(self):
         message = self.message_input.text()
         if not message.strip():
-            print("No message to send.")  # Debugging
             return
         try:
-            self.udp_socket.sendto(message.encode(), (HOST, UDP_PORT))
-            print(f"Message sent: {message}")  # Debugging
+            formatted_message = f"MESSAGE:{message}"  # Send only the message content
+            self.udp_socket.sendto(formatted_message.encode(), (HOST, UDP_PORT))
             self.message_input.clear()
         except Exception as e:
             print(f"Error sending message: {e}")
 
     def receive_message(self):
-        print("receive_message triggered")  # Debugging
         try:
             message, _ = self.udp_socket.recvfrom(1024)
-            decoded_message = message.decode()
-            print(f"Message received: {decoded_message}")  # Debugging
-            self.chat_display.append(decoded_message)
-            print(f"Chat display updated with: {decoded_message}")  # Debugging
+            self.chat_display.append(message.decode())
         except BlockingIOError:
-            print("No message received yet.")  # Debugging
+            pass
         except Exception as e:
             print(f"Error receiving message: {e}")
+
+    def leave_chat(self):
+        try:
+            self.udp_socket.sendto("CHAT_EXIT".encode(), (HOST, UDP_PORT))
+        except Exception as e:
+            print(f"Error during chat exit: {e}")
+        self.switch_to_main_menu.emit()
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.username = None
         self.setWindowTitle("Chat Client")
         self.setGeometry(200, 200, 600, 400)
         self.stack = QStackedWidget()
@@ -149,18 +152,22 @@ class MainWindow(QMainWindow):
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.login_screen = LoginScreen(self.client_socket)
         self.main_menu_screen = MainMenuScreen()
-        self.chat_screen = ChatScreen(self.udp_socket)
+        self.chat_screen = ChatScreen(self.udp_socket, self.username)
         self.login_screen.switch_to_main.connect(self.show_main_menu)
         self.main_menu_screen.switch_to_chat.connect(self.show_chat)
+        self.chat_screen.switch_to_main_menu.connect(self.show_main_menu)
+
         self.stack.addWidget(self.login_screen)
         self.stack.addWidget(self.main_menu_screen)
         self.stack.addWidget(self.chat_screen)
         self.stack.setCurrentWidget(self.login_screen)
 
     def show_main_menu(self):
+        self.username = self.login_screen.username_input.text()
         self.stack.setCurrentWidget(self.main_menu_screen)
 
     def show_chat(self):
+        self.chat_screen.username = self.username
         self.stack.setCurrentWidget(self.chat_screen)
 
     def closeEvent(self, event):

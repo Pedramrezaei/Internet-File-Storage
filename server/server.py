@@ -14,13 +14,15 @@ udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 udp_socket.bind((TCP_HOST, UDP_PORT))
 
 client_ports = {}  # Track clients with IP as key and port as value
+usernames = {}  # Track usernames with IP as key
 processed_messages = set()  # Use a combination of message and timestamp
 
 
 def handle_client(client_socket, client_address):
-    global client_ports
+    global client_ports, usernames
     print(f"New connection from {client_address}")
     ip, port = client_address
+    username = None  # Initialize username as None
     try:
         while True:
             request = client_socket.recv(1024).decode()
@@ -39,6 +41,12 @@ def handle_client(client_socket, client_address):
                 client_socket.send(message.encode())
                 if success:
                     print(f"{username} logged in successfully.")
+                    usernames[ip] = username  # Save username for this IP
+                    client_socket.send("LOGIN_SUCCESS".encode())
+            elif request == "CHAT_EXIT":
+                if ip in usernames:
+                    del usernames[ip]
+                break
     except Exception as e:
         print(f"Error handling client {client_address}: {e}")
     finally:
@@ -50,38 +58,43 @@ def handle_client(client_socket, client_address):
 
 
 def handle_udp_messages():
-    global client_ports, processed_messages
+    global client_ports, usernames, processed_messages
     print("Listening for UDP messages...")
     while True:
         try:
             message, client_address = udp_socket.recvfrom(1024)
             message = message.decode()
-            print(f"Received from {client_address}: {message}")
-
             ip, port = client_address
-
-            # Handle client exit
-            if message == "CHAT_EXIT":
-                if ip in client_ports and client_ports[ip] == port:
-                    del client_ports[ip]
-                    print(f"Removed {client_address} from client_ports.")
-                continue
 
             # Register or update client port
             client_ports[ip] = port
-            print(f"Updated client ports: {client_ports}")
 
-            # Use a combination of the message and timestamp to avoid duplicates
-            unique_message = (message, time.time())
-            processed_messages.add(unique_message)  # Add the unique message
+            # Handle client exit
+            if message == "CHAT_EXIT":
+                if ip in client_ports:
+                    del client_ports[ip]
+                if ip in usernames:
+                    del usernames[ip]
+                print(f"Removed {client_address} from client_ports and usernames.")
+                continue
 
-            # Remove old messages to prevent memory overflow
-            if len(processed_messages) > 1000:  # Adjust the threshold as needed
-                processed_messages = {m for m in processed_messages if time.time() - m[1] < 60}
+            # Append username if it exists
+            if ip in usernames and message.startswith("MESSAGE:"):
+                username = usernames[ip]
+                content = message.split(":", 1)[1]  # Extract message content
+                message = f"{username}: {content}"
+            elif message.startswith("MESSAGE:"):
+                # Handle case where username is not set
+                message = f"Unknown: {message.split(':', 1)[1]}"
 
+            print(f"Broadcasting message: {message}")
+
+            # Broadcast the message
             broadcast_message(udp_socket, client_ports, message)
+
         except Exception as e:
             print(f"Error in UDP message handling: {e}")
+
 
 
 def start_server():
