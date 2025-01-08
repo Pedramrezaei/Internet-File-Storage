@@ -5,7 +5,7 @@ from auth import authenticate_user, register_user
 from utils import validate_username, validate_password
 import time
 
-TCP_HOST = "145.94.130.217"
+TCP_HOST = "145.94.172.228"
 TCP_PORT = 1500
 UDP_PORT = 1701
 

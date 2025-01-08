@@ -1,11 +1,11 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QStackedWidget, QWidget, QVBoxLayout,
-    QLineEdit, QPushButton, QLabel, QTextEdit
+    QLineEdit, QPushButton, QLabel, QTextEdit, QHBoxLayout
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSocketNotifier
 import socket
 
-HOST = "145.94.130.217"
+HOST = "145.94.172.228"
 TCP_PORT = 1500
 UDP_PORT = 1701
 
@@ -163,14 +163,31 @@ class MainWindow(QMainWindow):
         self.username = None
         self.setWindowTitle("Chat Client")
         self.setGeometry(200, 200, 600, 400)
+
+        # Add a top-level layout to hold the greeting label
+        self.central_widget = QWidget()
+        self.layout = QVBoxLayout(self.central_widget)
+
+        # Top bar for the greeting
+        self.top_bar_layout = QHBoxLayout()
+        self.greeting_label = QLabel("")
+        self.greeting_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.top_bar_layout.addWidget(self.greeting_label)
+        self.layout.addLayout(self.top_bar_layout)
+
+        # Stacked widget for the main content
         self.stack = QStackedWidget()
-        self.setCentralWidget(self.stack)
+        self.layout.addWidget(self.stack)
+        self.setCentralWidget(self.central_widget)
+
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect((HOST, TCP_PORT))
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
         self.login_screen = LoginScreen(self.client_socket)
         self.main_menu_screen = MainMenuScreen()
         self.chat_screen = None  # Initialize chat_screen later
+
         self.login_screen.switch_to_main.connect(self.show_main_menu)
         self.main_menu_screen.switch_to_chat.connect(self.show_chat)
 
@@ -180,6 +197,7 @@ class MainWindow(QMainWindow):
 
     def show_main_menu(self):
         self.username = self.login_screen.username_input.text()
+        self.update_greeting()  # Update greeting label
         self.stack.setCurrentWidget(self.main_menu_screen)
 
     def show_chat(self):
@@ -191,6 +209,13 @@ class MainWindow(QMainWindow):
         self.chat_screen.username = self.username
         self.chat_screen.send_username_to_server()  # Ensure username is sent
         self.stack.setCurrentWidget(self.chat_screen)
+
+    def update_greeting(self):
+        """Update the greeting label with the signed-in username."""
+        if self.username:
+            self.greeting_label.setText(f"Hi, {self.username}")
+        else:
+            self.greeting_label.clear()  # Clear the text if no username is set
 
     def closeEvent(self, event):
         try:
