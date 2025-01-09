@@ -13,32 +13,32 @@ if not os.path.exists(METADATA_PATH):
 def list_files():
     """List all files and their metadata."""
     files = []
+    if not os.path.exists(METADATA_PATH):
+        return files  # Return an empty list if metadata file does not exist
+
     with open(METADATA_PATH, "r") as metadata_file:
         for line in metadata_file:
-            name, description, date_uploaded, file_type, size = line.strip().split("|")
-            files.append({
-                "name": name,
-                "description": description,
-                "date_uploaded": date_uploaded,
-                "type": file_type,
-                "size": size,
-            })
+            line = line.strip()
+            if line and len(line.split("|")) == 5:  # Validate correct format
+                files.append(line)
     return files
+
+
 
 
 def upload_file(filename, description, file_data):
     """Upload a file and store its metadata."""
     filepath = os.path.join(FILES_DIR, filename)
     with open(filepath, "wb") as file:
-        file.write(file_data)
+        file.write(file_data)  # Write binary data
 
     size = os.path.getsize(filepath)
     file_type = filename.split(".")[-1]
     date_uploaded = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Append metadata to the file
     with open(METADATA_PATH, "a") as metadata_file:
         metadata_file.write(f"{filename}|{description}|{date_uploaded}|{file_type}|{size}\n")
+
 
 
 def download_file(filename):

@@ -1,0 +1,80 @@
+QWidget {
+    background-color: #04080B;
+    font-family: 'Poppins', Arial, sans-serif;
+    font-size: 14px;
+}
+
+QPushButton {
+    background-color: #1d9bf0;
+    color: white;
+    border-radius: 0px;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 16px;
+    border: none;
+}
+
+QPushButton:hover {
+    background-color: #1481c3;
+}
+
+QLabel {
+    color: #ffffff;
+    font-size: 20px;
+}
+
+QTableWidget {
+    border: 1px solid #d9d9d9;
+    gridline-color: white;
+    background-color: #2C2F33; /* Set table background to dark grey */
+    color: white; /* Ensure text color is white */
+    width: 100%; /* Make sure table fills the available width */
+    border-radius: 5px;
+    padding: 10px;
+}
+
+QTableWidget::item {
+    background-color: #2C2F33; /* Ensure items have the same background */
+    color: white;             /* Text color for items */
+    padding: 10px;            /* Increase row padding for readability */
+}
+
+QTableWidget::item:empty {
+    background-color: #2C2F33; /* Empty items should stay dark grey */
+}
+
+QHeaderView::section {
+    background-color: #1d9bf0;
+    color: white;
+    padding: 10px;
+    font-weight: bold;
+}
+
+QTableWidget QTableCornerButton::section {
+    background-color: #2C2F33; /* Corner section should have the same background */
+    border: none;
+}
+
+QTableWidget::item:hover {
+    background-color: #4A4F55; /* Highlight items on hover */
+}
+
+QPushButton#logout_button {
+    font-size: 12px; /* Smaller font for logout button */
+    border-radius: 5px; /* Reduced border-radius for logout button */
+    padding: 8px 15px; /* Adjust padding for better fit */
+    min-width: 100px; /* Ensure logout button width */
+}
+
+QPushButton#preview_button, QPushButton#download_button {
+    font-size: 10px; /* Slightly larger font size for Preview and Download buttons */
+    border-radius: 0px; /* No border radius for these buttons */
+    padding: 0px 0px; /* Adjust padding for readability */
+}
+
+QPushButton#refresh_button, QPushButton#back_button {
+    font-size: 12px;
+    border-radius: 5px;
+    padding: 10px;
+    min-width: 120px; /* Ensure buttons are large enough */
+}

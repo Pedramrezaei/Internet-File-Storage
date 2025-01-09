@@ -5,9 +5,9 @@ from server_modules.auth import authenticate_user, register_user
 from server_modules.file_manager import list_files, upload_file, download_file, preview_file
 from server_modules.utils import validate_username, validate_password
 
-TCP_HOST = "145.94.172.228"
-TCP_PORT = 1500
-UDP_PORT = 1701
+TCP_HOST = "145.94.179.166"
+TCP_PORT = 1501
+UDP_PORT = 1702
 
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -16,14 +16,15 @@ udp_socket.bind((TCP_HOST, UDP_PORT))
 client_ports = {}
 usernames = {}
 
+
 def handle_client(client_socket, client_address):
     global client_ports, usernames
     ip, port = client_address
     try:
         while True:
-            request = client_socket.recv(1024).decode()
+            request = client_socket.recv(1024).decode(errors="ignore").strip()
             if request == "REGISTER":
-                credentials = client_socket.recv(1024).decode().split(":")
+                credentials = client_socket.recv(1024).decode().strip().split(":")
                 username, password = credentials[0], credentials[1]
                 if not validate_username(username) or not validate_password(password):
                     client_socket.send("Invalid credentials.".encode())
@@ -31,7 +32,7 @@ def handle_client(client_socket, client_address):
                     success, message = register_user(username, password)
                     client_socket.send(message.encode())
             elif request == "LOGIN":
-                credentials = client_socket.recv(1024).decode().split(":")
+                credentials = client_socket.recv(1024).decode().strip().split(":")
                 username, password = credentials[0], credentials[1]
                 success, message = authenticate_user(username, password)
                 client_socket.send(message.encode())
@@ -44,13 +45,20 @@ def handle_client(client_socket, client_address):
                 break
             elif request == "LIST_FILES":
                 files = list_files()
-                client_socket.send(str(files).encode())
+                formatted_files = "\n".join(files) if files else ""
+                try:
+                    client_socket.send(formatted_files.encode("utf-8"))
+                except Exception as e:
+                    print(f"Error sending file list: {e}")
             elif request.startswith("UPLOAD_FILE"):
-                metadata = request.split(":")[1]
-                filename, description = metadata.split("|")
-                file_data = client_socket.recv(1024 * 1024)
-                upload_file(filename, description, file_data)
-                client_socket.send("File uploaded successfully.".encode())
+                try:
+                    metadata = request.split(":")[1]
+                    filename, description = metadata.split("|")
+                    file_data = client_socket.recv(1024 * 1024)
+                    upload_file(filename, description, file_data)
+                    client_socket.send("File uploaded successfully.".encode())
+                except Exception as e:
+                    client_socket.send(f"UPLOAD_ERROR: {e}".encode())
             elif request.startswith("DOWNLOAD_FILE"):
                 filename = request.split(":")[1]
                 file_data = download_file(filename)
@@ -70,12 +78,13 @@ def handle_client(client_socket, client_address):
             del client_ports[ip]
         print(f"Connection with {client_address} closed.")
 
+
 def handle_udp_messages():
     global client_ports, usernames
     while True:
         try:
             message, client_address = udp_socket.recvfrom(1024)
-            message = message.decode()
+            message = message.decode().strip()
             ip, port = client_address
 
             client_ports[ip] = port
@@ -104,6 +113,7 @@ def handle_udp_messages():
         except Exception as e:
             print(f"Error in UDP message handling: {e}")
 
+
 def start_server():
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.bind((TCP_HOST, TCP_PORT))
@@ -115,6 +125,7 @@ def start_server():
     while True:
         client_socket, client_address = tcp_socket.accept()
         threading.Thread(target=handle_client, args=(client_socket, client_address)).start()
+
 
 if __name__ == "__main__":
     start_server()
