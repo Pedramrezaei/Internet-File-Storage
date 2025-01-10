@@ -90,13 +90,15 @@ class FileManagerScreen(QWidget):
 
             # Preview Button
             preview_button = QPushButton("Preview")
-            preview_button.setStyleSheet("QPushButton { padding: 0px; font-size: 10px; }")  # Smaller font size and padding
+            preview_button.setStyleSheet(
+                "QPushButton { padding: 0px; font-size: 10px; }")  # Smaller font size and padding
             preview_button.clicked.connect(lambda _, f=file["name"]: self.preview_file(f))
             self.file_table.setCellWidget(row, 5, preview_button)
 
             # Download Button
             download_button = QPushButton("Download")
-            download_button.setStyleSheet("QPushButton { padding: 0px; font-size: 10px; }")  # Smaller font size and padding
+            download_button.setStyleSheet(
+                "QPushButton { padding: 0px; font-size: 10px; }")  # Smaller font size and padding
             download_button.clicked.connect(lambda _, f=file["name"]: self.download_file(f))
             self.file_table.setCellWidget(row, 6, download_button)
 
