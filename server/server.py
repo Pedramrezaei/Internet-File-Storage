@@ -5,7 +5,7 @@ from server_modules.auth import authenticate_user, register_user
 from server_modules.file_manager import list_files, upload_file, download_file, preview_file
 from server_modules.utils import validate_username, validate_password
 
-TCP_HOST = "145.94.179.166"
+TCP_HOST = "192.168.188.48"
 TCP_PORT = 1501
 UDP_PORT = 1702
 

@@ -1,3 +1,5 @@
+import time
+
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -6,7 +8,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QFileDialog,
     QInputDialog,
-    QHBoxLayout
+    QHBoxLayout, QMessageBox
 )
 from PyQt6.QtCore import QThread, pyqtSignal
 import os
@@ -30,29 +32,30 @@ class FileManagerScreen(QWidget):
         )
         self.layout.addWidget(self.file_table)
 
-        # Upload Button (100% width)
+        # Upload Button
         self.upload_button = QPushButton("Upload File")
-        self.upload_button.setStyleSheet("QPushButton { width: 100%; }")
         self.upload_button.clicked.connect(self.upload_file)
         self.layout.addWidget(self.upload_button)
 
-        # Buttons Layout (set up so the two buttons share the remaining width equally)
+        # Batch Download Button
+        self.batch_download_button = QPushButton("Batch Download Files")
+        self.batch_download_button.clicked.connect(self.batch_download)
+        self.layout.addWidget(self.batch_download_button)
+
+        # Buttons Layout
         self.buttons_layout = QHBoxLayout()
 
-        # Refresh Button (50% width)
+        # Refresh Button
         self.refresh_button = QPushButton("Refresh File List")
-        self.refresh_button.setStyleSheet("QPushButton { width: 50%; }")
         self.refresh_button.clicked.connect(self.refresh_file_list)
         self.buttons_layout.addWidget(self.refresh_button)
 
-        # Back to Main Menu Button (50% width)
+        # Back Button
         self.back_button = QPushButton("Back to Main Menu")
-        self.back_button.setStyleSheet("QPushButton { width: 50%; }")
         self.back_button.clicked.connect(self.switch_to_main_menu.emit)
         self.buttons_layout.addWidget(self.back_button)
 
         self.layout.addLayout(self.buttons_layout)
-
         self.setLayout(self.layout)
         self.refresh_file_list()
 
@@ -87,11 +90,13 @@ class FileManagerScreen(QWidget):
 
             # Preview Button
             preview_button = QPushButton("Preview")
+            preview_button.setStyleSheet("QPushButton { padding: 0px; font-size: 10px; }")  # Smaller font size and padding
             preview_button.clicked.connect(lambda _, f=file["name"]: self.preview_file(f))
             self.file_table.setCellWidget(row, 5, preview_button)
 
             # Download Button
             download_button = QPushButton("Download")
+            download_button.setStyleSheet("QPushButton { padding: 0px; font-size: 10px; }")  # Smaller font size and padding
             download_button.clicked.connect(lambda _, f=file["name"]: self.download_file(f))
             self.file_table.setCellWidget(row, 6, download_button)
 
@@ -126,19 +131,50 @@ class FileManagerScreen(QWidget):
             print(f"Error previewing file: {e}")
 
     def download_file(self, filename):
-        """Download a file from the server."""
+        """Download a file from the server and allow the user to choose the save location."""
         try:
             self.client_socket.send(f"DOWNLOAD_FILE:{filename}".encode("utf-8"))
             file_data = self.client_socket.recv(1024 * 1024)
+
             if file_data.startswith(b"File not found"):
                 print(file_data.decode("utf-8"))
             else:
-                with open(filename, "wb") as file:
-                    file.write(file_data)
-                print(f"File '{filename}' downloaded successfully.")
+                file_path, _ = QFileDialog.getSaveFileName(self, "Save File", filename)
+                if file_path:
+                    with open(file_path, "wb") as file:
+                        file.write(file_data)
+                    print(f"File '{filename}' downloaded successfully to {file_path}.")
         except Exception as e:
             print(f"Error downloading file: {e}")
 
+    def batch_download(self):
+        """Download all files from the server."""
+        try:
+            save_folder = QFileDialog.getExistingDirectory(self, "Select Folder to Save Files")
+            if not save_folder:
+                return
+
+            start_time = time.time()
+
+            self.client_socket.send("LIST_FILES".encode("utf-8"))
+            response = self.client_socket.recv(1024 * 1024).decode("utf-8")
+
+            for line in response.split("\n"):
+                if line.strip() and "|" in line:
+                    filename = line.split("|")[0]
+
+                    self.client_socket.send(f"DOWNLOAD_FILE:{filename}".encode("utf-8"))
+                    file_data = self.client_socket.recv(1024 * 1024)
+
+                    with open(os.path.join(save_folder, filename), "wb") as file:
+                        file.write(file_data)
+
+            end_time = time.time()
+            duration = round(end_time - start_time, 2)
+
+            QMessageBox.information(self, "Batch Download Complete", f"All files downloaded in {duration} seconds.")
+        except Exception as e:
+            QMessageBox.critical(self, "Batch Download Error", f"An error occurred: {e}")
 
 
 class FileListRefreshThread(QThread):

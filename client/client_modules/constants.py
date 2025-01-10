@@ -1,3 +1,3 @@
-HOST = "145.94.179.166"  # Server IP
-TCP_PORT = 1500          # TCP Port
-UDP_PORT = 1701          # UDP Port
+HOST = "192.168.188.48"  # Server IP
+TCP_PORT = 1501         # TCP Port
+UDP_PORT = 1702          # UDP Port

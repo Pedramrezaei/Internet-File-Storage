@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.username = None
-        self.setWindowTitle("Chat Client")
+        self.setWindowTitle("Webeloper")
         self.setGeometry(200, 200, 1000, 600)
 
         # Load and apply the external stylesheet
